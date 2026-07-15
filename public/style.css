@@ -9560,3 +9560,66 @@ button[onclick="undoLast()"].btn-control-secondary:hover {
 .winner-table tr:hover {
     background: rgba(255, 255, 255, 0.05);
 }
+
+/* ==========================================
+   OPTIMIZACIONES DE RESPONSIVIDAD Y CONTRASTE (Antigravity Overrides)
+   ========================================== */
+
+/* Asegurar que el contenedor del tablero de números en admin permita scroll y no corte celdas */
+.grid-center-col .card-white {
+    overflow-y: auto !important;
+    max-height: 100% !important;
+}
+
+/* Tablero de Números: Altura mínima y comportamiento flexible */
+.numbers-board {
+    min-height: 380px !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    grid-template-rows: auto repeat(15, 1fr) !important;
+    gap: 3px !important;
+}
+
+/* Celdas del tablero: Asegurar visibilidad y tamaño mínimo */
+.board-cell {
+    min-height: 24px !important;
+    font-size: clamp(0.75rem, 1.8vh, 0.95rem) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 800 !important;
+}
+
+.board-header-cell {
+    min-height: 28px !important;
+    font-size: clamp(1rem, 2.5vh, 1.3rem) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 900 !important;
+}
+
+/* Mejoras de contraste en botones secundarios y de control */
+.btn-control-secondary {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: var(--text-primary) !important; /* Contraste mucho más alto */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="light"] .btn-control-secondary {
+    background: rgba(124, 58, 237, 0.1) !important;
+    color: var(--primary-dark) !important;
+    border: 1px solid rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Modificar hover de botones para asegurar legibilidad */
+.btn-control-secondary:hover {
+    filter: brightness(1.2) !important;
+}
+
+/* Mejorar contraste en botones deshabilitados */
+.btn-call-main:disabled, .btn-primary:disabled {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
