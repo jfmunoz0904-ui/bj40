@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yovanny Bingo - Acceso</title>
+    <link rel="stylesheet" href="/css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo-mark">🎱</div>
+                <h1>Yovanny Bingo</h1>
+                <p>La mejor experiencia de bingo online</p>
+            </div>
+
+            <div class="forms-wrapper">
+                <div class="forms-slider" id="forms-slider">
+            <!-- Formulario Login -->
+            <div id="form-login" class="auth-form">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" id="login-user" class="form-input" placeholder="Tu nombre de usuario" required autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" id="login-pass" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        Iniciar Sesión <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>
+                    </button>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button type="button" onclick="alert('Por favor contacta al administrador para restablecer tu contraseña.')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; text-decoration: underline;">¿Olvidaste tu contraseña?</button>
+                    </div>
+                    <div class="switch-link">
+                        ¿No tienes cuenta? <a id="to-register">Regístrate aquí</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Formulario Registro -->
+            <div id="form-register" class="auth-form">
+                <form id="register-form">
+                    <div class="form-group">
+                        <label>Elige un Usuario</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <input type="text" id="reg-user" class="form-input" placeholder="Mínimo 3 caracteres" required minlength="3" autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-envelope"></i>
+                            <input type="email" id="reg-email" class="form-input" placeholder="ejemplo@correo.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Crea una Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key"></i>
+                            <input type="password" id="reg-pass" class="form-input" placeholder="Mínimo 4 caracteres" required minlength="4" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        Registrarse Gratis
+                    </button>
+                    <div class="switch-link">
+                        ¿Ya tienes cuenta? <a id="to-login">Inicia Sesión</a>
+                    </div>
+                </form>
+            </div>
+                </div>
+            </div>
+
+            <div id="error-display" class="error-msg"></div>
+
+            <div class="admin-link">
+                <a href="#" onclick="toggleAdminLogin()">¿Eres Administrador?</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script>
+        // Pequeño script inline para manejar el modal de admin si es necesario, 
+        // o redirigir a una página de admin separada.
+        function toggleAdminLogin() {
+            const user = prompt("Contraseña de Administrador:");
+            if(user) {
+                fetch('/admin-login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: user})
+                }).then(r => r.json()).then(d => { if(d.success) window.location.href = '/admin.html'; else alert('Acceso denegado'); });
+            }
+        }
+    </script>
+</body>
+</html>

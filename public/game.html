@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yovanny Bingo - Sala de Juego</title>
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/auth.css"> <!-- Base (variables, reset) -->
+    <link rel="stylesheet" href="css/game.css"> <!-- Estilos del juego -->
+    <link rel="stylesheet" href="css/assistant.css"> <!-- Estilos del asistente -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Scripts Externos -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        
+        <!-- 1. Header Superior -->
+        <header class="glass-panel game-header">
+            <div class="user-profile">
+                <div class="avatar-circle" id="user-avatar">?</div>
+                <div class="user-info">
+                    <h3 id="user-name">Cargando...</h3>
+                    <span id="connection-status">🟢 Conectado</span>
+                </div>
+            </div>
+
+            <div class="current-ball-display">
+                <div class="big-ball" id="current-ball">--</div>
+                <span style="margin-top: 5px; font-size: 0.8rem; opacity: 0.7;">ÚLTIMA BOLA</span>
+            </div>
+
+            <div class="game-controls">
+                <button class="btn-primary" onclick="logout()" style="padding: 8px 15px; font-size: 0.9rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Salir
+                </button>
+            </div>
+        </header>
+
+        <!-- 2. Sidebar Izquierda: Info y Stats -->
+        <aside class="glass-panel sidebar-left">
+            <div class="panel-header">
+                <h4><i class="fa-solid fa-clock-rotate-left"></i> Historial</h4>
+            </div>
+            <div class="history-grid" id="history-container">
+                <!-- Bolas anteriores se inyectan aquí -->
+            </div>
+            
+            <div style="margin-top: auto;">
+                <h4><i class="fa-solid fa-trophy"></i> Patrón Actual</h4>
+                <div id="current-pattern-display" style="text-align: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; margin-top: 10px;">
+                    <span id="pattern-name" style="font-weight: bold; color: var(--accent-color);">LÍNEA</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 3. Tablero Principal -->
+        <main class="glass-panel main-board">
+            <div class="cards-grid" id="cards-container">
+                <!-- Los cartones se generan aquí -->
+                <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--text-muted);">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                    <p>Cargando tus cartones...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 4. Sidebar Derecha: Chat -->
+        <aside class="glass-panel sidebar-right">
+            <div class="panel-header" style="margin-bottom: 10px;">
+                <h4><i class="fa-solid fa-comments"></i> Chat Global</h4>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Mensajes -->
+            </div>
+            <form class="chat-input-area" id="chat-form">
+                <input type="text" id="chat-input" class="form-input" placeholder="Escribe algo..." autocomplete="off">
+                <button type="submit" class="btn-primary" style="width: 50px;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </aside>
+
+    </div>
+
+    <!-- Botón Flotante BINGO -->
+    <button class="bingo-fab" onclick="shoutBingo()">
+        BINGO!
+    </button>
+
+    <!-- Scripts Lógicos -->
+    <script src="js/assistant.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

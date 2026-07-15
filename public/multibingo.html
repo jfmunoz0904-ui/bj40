@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yovanny Multibingo - Sala Principal</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body class="player-app">
+    <!-- Fondo Animado -->
+    <canvas id="liquid-canvas"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.12; z-index: -1;"></canvas>
+    <div class="watermark-layer"></div>
+
+    <div id="multibingo-screen" class="screen active" style="height: 100vh; overflow: hidden; background: var(--bg-main); display: flex; flex-direction: column;">
+        
+        <!-- Wrapper Principal -->
+        <div class="casino-app-wrapper">
+            
+            <!-- Header Estilo Casino -->
+            <header class="casino-header">
+                <div class="ch-prof">
+                    <div class="ch-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">MB</div>
+                    <div class="ch-info">
+                        <span class="ch-name">MULTIBINGO</span>
+                        <span class="ch-status">Sala Pública</span>
+                    </div>
+                </div>
+
+                <div class="ch-center-ball">
+                    <span class="ch-lbl">BOLA ACTUAL</span>
+                    <span id="current-number" class="ch-val">--</span>
+                </div>
+
+                <div class="ch-actions">
+                    <div class="ch-mode">
+                        <span class="ch-lbl">PATRÓN</span>
+                        <span id="mode-display" class="mode-glow">LÍNEA</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Carril de Historial -->
+            <div class="casino-history-track">
+                <div id="last-numbers" class="history-balls-row">
+                    <!-- Bolas se inyectan aquí -->
+                </div>
+            </div>
+
+            <!-- Área de Cartones -->
+            <div class="casino-board-wrapper">
+                <div class="casino-board-header">
+                    <h3>🎫 VISTA GENERAL</h3>
+                    <div id="cards-count" class="casino-badge">0 Cartones</div>
+                </div>
+                
+                <!-- Grid para múltiples cartones -->
+                <div id="cards-container" class="casino-cards-grid">
+                    <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--text-muted); background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px dashed var(--glass-border);">
+                        <h3>Esperando inicio de partida...</h3>
+                        <p>Los cartones aparecerán aquí cuando comience el juego.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentCalledNumbers = [];
+
+        // Conexión básica para recibir números y estado
+        socket.on('connect', () => {
+            console.log('Conectado a Multibingo');
+        });
+
+        socket.on('number_called', (data) => {
+            currentCalledNumbers.push(data.num);
+            const numEl = document.getElementById('current-number');
+            numEl.textContent = data.num;
+            
+            // Animación simple
+            numEl.style.transform = 'scale(1.5)';
+            setTimeout(() => numEl.style.transform = 'scale(1)', 300);
+
+            updateLastNumbers(data.last5);
+        });
+
+        socket.on('sync_state', (state) => {
+            currentCalledNumbers = state.calledNumbers;
+            if(state.calledNumbers.length > 0) {
+                document.getElementById('current-number').textContent = state.calledNumbers[state.calledNumbers.length - 1];
+            }
+            updateLastNumbers(state.last5Numbers);
+            document.getElementById('mode-display').textContent = state.pattern;
+        });
+
+        // Escuchar evento de Multibingo
+        socket.on('multibingo', (data) => {
+            renderWinningCards(data.winners);
+        });
+
+        // Escuchar evento de ganador único (para mostrarlo también)
+        socket.on('winner_announced', (data) => {
+            renderWinningCards([data]);
+        });
+
+        function updateLastNumbers(arr) {
+            const container = document.getElementById('last-numbers');
+            container.innerHTML = arr.map(n => `<div class="history-ball" style="width: 40px; height: 40px; font-size: 1.1rem;">${n}</div>`).join('');
+        }
+
+        function renderWinningCards(winners) {
+            const container = document.getElementById('cards-container');
+            const countEl = document.getElementById('cards-count');
+            
+            container.innerHTML = '';
+            countEl.textContent = `${winners.length} Ganador${winners.length > 1 ? 'es' : ''}`;
+            countEl.classList.add('pulse'); // Animación visual
+
+            // Efecto de Confeti
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            winners.forEach((winner, index) => {
+                const card = generateCard(winner.card);
+                const cardEl = document.createElement('div');
+                cardEl.className = 'bingo-card animate-enter';
+                cardEl.style.animationDelay = `${index * 200}ms`;
+                cardEl.innerHTML = `
+                    <div class="card-header" style="background: linear-gradient(90deg, #f59e0b, #d97706);">
+                        <span class="card-title">🏆 ${winner.user}</span>
+                        <span style="font-size: 0.9rem; font-weight: 800;">#${winner.card}</span>
+                    </div>
+                    <div class="card-grid">
+                        ${['B', 'I', 'N', 'G', 'O'].map(l => `<div class="grid-header col-${l}">${l}</div>`).join('')}
+                        ${[0, 1, 2, 3, 4].map(row =>
+                            ['B', 'I', 'N', 'G', 'O'].map(col => {
+                                const val = card[col][row];
+                                const isFree = val === "FREE";
+                                const isMarked = isFree || currentCalledNumbers.includes(val);
+                                return `<div class="grid-cell ${isMarked ? 'marked' : ''} ${isFree ? 'free' : ''}">${isFree ? '★' : val}</div>`;
+                            }).join('')
+                        ).join('')}
+                    </div>
+                `;
+                container.appendChild(cardEl);
+            });
+        }
+
+        // Generador de cartones (Cliente)
+        function mulberry32(seed) {
+            return function () {
+                let t = seed += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+        }
+
+        function generateCard(cardId) {
+            const rng = mulberry32(cardId);
+            const fillCol = (min, max, count) => {
+                const nums = new Set();
+                let safety = 0;
+                while (nums.size < count && safety < 500) {
+                    nums.add(Math.floor(rng() * (max - min + 1)) + min);
+                    safety++;
+                }
+                return Array.from(nums);
+            };
+            const colN = fillCol(31, 45, 4);
+            return {
+                id: cardId,
+                B: fillCol(1, 15, 5),
+                I: fillCol(16, 30, 5),
+                N: [colN[0], colN[1], "FREE", colN[2], colN[3]],
+                G: fillCol(46, 60, 5),
+                O: fillCol(61, 75, 5)
+            };
+        }
+    </script>
+</body>
+</html>

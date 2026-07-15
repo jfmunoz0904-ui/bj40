@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Yovanny Bingo</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+
+    <div class="login-card">
+        <img src="logo.png" alt="Yovanny Bingo Logo" class="login-logo">
+        <h2>Área de Administración</h2>
+        <input type="password" id="adminPass" placeholder="Contraseña Maestra">
+        <button onclick="attemptLogin()" class="btn-primary">Ingresar</button>
+        <p id="error-msg" style="color:red; display:none;">Contraseña incorrecta</p>
+    </div>
+
+    <script>
+        async function attemptLogin() {
+            const pass = document.getElementById('adminPass').value;
+            const res = await fetch('/admin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass })
+            });
+            const data = await res.json();
+
+            if(data.success) {
+                // Guardamos un "token" simple en sessionStorage
+                sessionStorage.setItem('yovanny_admin_auth', 'true');
+                window.location.href = '/admin.html';
+            } else {
+                document.getElementById('error-msg').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+/* Hereda variables de auth.css */
+
+body {
+    overflow-y: auto; /* Permitir scroll en el juego */
+    display: block; /* Resetear flex del login */
+}
+
+/* Layout Principal */
+.game-container {
+    display: grid;
+    grid-template-columns: 300px 1fr 350px;
+    grid-template-rows: auto 1fr auto;
+    gap: 20px;
+    height: 100vh;
+    padding: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Paneles de Cristal */
+.glass-panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header / Top Bar */
+.game-header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 80px;
+    padding: 0 30px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.avatar-circle {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
+
+.user-info h3 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.user-info span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Bola Actual (Centro) */
+.current-ball-display {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.big-ball {
+    width: 90px;
+    height: 90px;
+    background: radial-gradient(circle at 30% 30%, #fff, var(--primary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--bg-dark);
+    box-shadow: 
+        inset -10px -10px 20px rgba(0,0,0,0.5),
+        0 0 30px rgba(99, 102, 241, 0.6);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    z-index: 10;
+}
+
+.big-ball::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    width: 20px;
+    height: 10px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    transform: rotate(-45deg);
+}
+
+/* Sidebar Izquierda (Historial y Stats) */
+.sidebar-left {
+    grid-column: 1;
+    gap: 20px;
+}
+
+.history-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.mini-ball {
+    width: 35px;
+    height: 35px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.mini-ball.active {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    box-shadow: 0 0 10px var(--secondary);
+}
+
+/* Área Central (Cartones) */
+.main-board {
+    grid-column: 2;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.bingo-card {
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 16px;
+    padding: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bingo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    border-color: var(--primary);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.card-grid-inner {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+}
+
+.grid-cell {
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+}
+
+.grid-cell:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+.grid-cell.marked {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 10px var(--primary);
+    transform: scale(0.95);
+}
+
+.grid-cell.free {
+    background: var(--secondary);
+    font-size: 0.8rem;
+}
+
+/* Sidebar Derecha (Chat) */
+.sidebar-right {
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-right: 5px;
+}
+
+.chat-msg {
+    background: rgba(255,255,255,0.05);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    border-bottom-left-radius: 2px;
+}
+
+.chat-msg.mine {
+    background: rgba(99, 102, 241, 0.2);
+    align-self: flex-end;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 2px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.chat-msg strong {
+    color: var(--accent-color);
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+/* Botón BINGO Flotante */
+.bingo-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px; /* Ajustado para no tapar chat en desktop */
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    border: none;
+    color: white;
+    font-weight: 900;
+    font-size: 1.2rem;
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5);
+    cursor: pointer;
+    z-index: 100;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: pulse 2s infinite;
+}
+
+.bingo-fab:hover {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .game-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+        height: auto;
+        overflow-y: visible;
+    }
+    
+    .sidebar-left, .sidebar-right {
+        height: 400px;
+    }
+    
+    .current-ball-display {
+        position: static;
+        transform: none;
+    }
+    
+    .game-header {
+        flex-direction: column;
+        height: auto;
+        gap: 15px;
+        padding: 20px;
+    }
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Scrollbar bonita */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3);
+}

@@ -1,0 +1,118 @@
+/* VARIABLES BASE Y DEFAULT (DARK) */
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #334155;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-color: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --border-color: #475569;
+    --base-font-size: 16px;
+}
+
+html {
+    font-size: var(--base-font-size);
+    transition: font-size 0.3s ease;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 🎨 TEMAS */
+
+/* Light Theme */
+[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-card: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --accent-color: #0284c7;
+    --accent-hover: #0369a1;
+    --border-color: #cbd5e1;
+}
+
+/* Party Theme */
+[data-theme="party"] {
+    --bg-primary: #2e1065;
+    --bg-secondary: #4c1d95;
+    --bg-card: #581c87;
+    --text-primary: #fdf4ff;
+    --text-secondary: #e9d5ff;
+    --accent-color: #d946ef;
+    --accent-hover: #c026d3;
+    --border-color: #7e22ce;
+}
+
+/* Forest Theme */
+[data-theme="forest"] {
+    --bg-primary: #052e16;
+    --bg-secondary: #064e3b;
+    --bg-card: #065f46;
+    --text-primary: #ecfdf5;
+    --text-secondary: #a7f3d0;
+    --accent-color: #34d399;
+    --accent-hover: #10b981;
+    --border-color: #047857;
+}
+
+/* Ocean Theme */
+[data-theme="ocean"] {
+    --bg-primary: #0c4a6e;
+    --bg-secondary: #075985;
+    --bg-card: #0369a1;
+    --text-primary: #f0f9ff;
+    --text-secondary: #bae6fd;
+    --accent-color: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --border-color: #0284c7;
+}
+
+/* ♿ ACCESIBILIDAD */
+
+.high-contrast {
+    --bg-primary: #000000 !important;
+    --bg-secondary: #000000 !important;
+    --bg-card: #000000 !important;
+    --text-primary: #ffffff !important;
+    --text-secondary: #ffff00 !important;
+    --accent-color: #ffff00 !important;
+    --border-color: #ffffff !important;
+    filter: contrast(1.5);
+}
+
+.color-blind-mode .bingo-cell.marked {
+    /* Patrón visual para distinguir marcados sin depender solo del color */
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(0,0,0,0.2),
+        rgba(0,0,0,0.2) 10px,
+        transparent 10px,
+        transparent 20px
+    );
+    border: 3px solid var(--text-primary);
+}
+
+/* 📐 LAYOUTS DE CARTONES */
+
+.layout-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.layout-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.layout-compact .bingo-card {
+    font-size: 0.8em;
+    padding: 5px;
+}

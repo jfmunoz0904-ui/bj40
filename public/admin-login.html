@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Yovanny Bingo</title>
+    <link rel="stylesheet" href="style.css?v=17">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="js/theme.js"></script>
+</head>
+
+<body class="admin-login-page split-layout">
+    <div class="split-left">
+        <div id="admin-login-panel" class="auth-panel">
+            <div class="login-container">
+                <div class="brand-area">
+                    <img src="logo.png" alt="Yovanny Bingo" class="brand-logo">
+                    <h1 class="brand-title">BINGO YOVANNY</h1>
+                    <p class="brand-subtitle">Panel de Administración</p>
+                </div>
+
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" id="admin-password" placeholder="Contraseña..." autocomplete="off">
+                </div>
+
+                <div id="login-error" class="error-msg"></div>
+
+                <button onclick="login()" class="btn-primary btn-glow btn-block">
+                    🚪 INGRESAR AL PANEL
+                </button>
+
+                <a href="/" class="back-link">← Volver al juego</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="split-right">
+        <canvas id="liquid-canvas"></canvas>
+        <div class="overlay-text">
+            <h2>Panel de<br>Control</h2>
+            <p>Gestión del juego y usuarios</p>
+        </div>
+    </div>
+
+    <script src="js/animation.js"></script>
+    <script>
+        async function login() {
+            const password = document.getElementById('admin-password').value;
+            const errorEl = document.getElementById('login-error');
+
+            try {
+                const res = await fetch('/admin-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem('bingo_admin_session', 'true');
+                    window.location.href = '/admin.html';
+                } else {
+                    errorEl.textContent = 'Contraseña incorrecta';
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        document.getElementById('admin-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+
+</html>

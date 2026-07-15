@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # Servicio principal de la aplicación Node.js (Backend)
+  app:
+    build: .
+    container_name: yovanny-bingo-app
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      # Railway inyectará MONGO_URI y REDIS_URL automáticamente desde los servicios gestionados
+      # Asegúrate de que estas variables estén definidas en Railway o en tu .env local para desarrollo.
+    networks:
+      - bingo-network
+
+networks:
+  bingo-network:
+    driver: bridge

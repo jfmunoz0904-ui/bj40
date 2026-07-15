@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yovanny Bingo - Panel de Control</title>
+    <link rel="stylesheet" href="style.css?v=18">
+    <link rel="stylesheet" href="chat.css?v=3">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Estilos Críticos Embebidos para evitar caché -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/theme.js"></script>
+    <script>
+        // 🔒 Seguridad: Verificación obligatoria de administrador
+        const adminSession = localStorage.getItem('bingo_admin_session');
+        if (!adminSession) {
+            window.location.href = '/admin-login.html';
+        }
+    </script>
+</head>
+
+<body class="admin-app">
+    <!-- 🎈 Fondo Animado -->
+    <canvas id="liquid-canvas"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.12; z-index: -1;"></canvas>
+
+    <div class="app-container">
+
+        <aside class="app-sidebar" id="sidebar">
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()"
+                style="position: absolute; right: -15px; top: 30px; width: 30px; height: 30px; background: var(--primary); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 101; cursor: pointer;">
+                ❮
+            </button>
+            <div class="sidebar-brand">
+                <div class="brand-circle"
+                    style="width: 40px; height: 40px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 900; font-size: 1.5rem;">
+                    Y</div>
+                <h1>YOVANNY BINGO</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" onclick="switchActiveTab('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <div class="tooltip-container">
+                    <a href="#" class="nav-link" onclick="openPlayersModal()">
+                        <span class="nav-icon">👥</span>
+                        <span>Jugadores</span>
+                    </a>
+                    <span class="tooltip-text right">Gestionar jugadores activos, pendientes y ganadores.</span>
+                </div>
+                <div class="tooltip-container">
+                    <a href="#" class="nav-link" onclick="showCardStatusModal()">
+                        <span class="nav-icon">🎫</span>
+                        <span>Cartones</span>
+                    </a>
+                    <span class="tooltip-text right">Ver el estado de todos los cartones (disponibles/usados).</span>
+                </div>
+                <div class="tooltip-container">
+                    <a href="#" class="nav-link" onclick="showPatternsModal()">
+                        <span class="nav-icon">🎯</span>
+                        <span>Patrones</span>
+                    </a>
+                    <span class="tooltip-text right">Ver y seleccionar los patrones de bingo.</span>
+                </div>
+                <div class="tooltip-container">
+                    <a href="#" class="nav-link" onclick="showHistoryModal()">
+                        <span class="nav-icon">📜</span>
+                        <span>Historial</span>
+                    </a>
+                    <span class="tooltip-text right">Ver historial de partidas y reimprimir reportes.</span>
+                </div>
+                <div class="tooltip-container">
+                    <a href="#" class="nav-link" onclick="showEconomyModal()">
+                        <span class="nav-icon">💰</span>
+                        <span>Economía</span>
+                    </a>
+                    <span class="tooltip-text right">Gestionar premios, promociones y métodos de pago.</span>
+                </div>
+                <div class="tooltip-container">
+                    <a href="#" class="nav-link" id="toggle-voice-btn">
+                        <span class="nav-icon">🔊</span>
+                        <span>Voz</span>
+                    </a>
+                    <span class="tooltip-text right">Configurar la voz que anuncia los números.</span>
+                </div>
+                <a href="#" class="nav-link" onclick="toggleModernChat()">
+                    <!-- Chat has its own badge, tooltip might be tricky -->
+                    <span class="nav-icon">💬</span>
+                    <span>Chat</span> <span id="chat-badge" class="chat-badge hidden">0</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button onclick="logoutAdmin()" class="btn-go-out"
+                    style="width: 100%; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-secondary); padding: 10px;">
+                    <span class="nav-icon">🚪</span> <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 🚀 MAIN CONTENT -->
+        <main class="app-main">
+
+            <header class="page-header">
+                <div>
+                    <h2 class="page-title" style="font-size: 1.5rem;">Dashboard Operacional</h2>
+                    <p style="color: var(--text-muted); font-size: 0.8rem;">Control en tiempo real del Bingo</p>
+                </div>
+                <div class="header-status">
+                    <span id="connection-status" class="status-indicator online" style="font-size: 0.85rem;">🟢
+                        Conectado</span>
+                </div>
+            </header>
+
+            <!-- Ticker de mensaje -->
+            <div class="admin-message-ticker">
+                <span class="ticker-icon">📢</span>
+                <input type="text" id="admin-message" placeholder="Mensaje para los jugadores..." maxlength="200">
+                <button onclick="setMessage()" class="btn-primary">Enviar</button>
+            </div>
+
+            <div class="admin-grid">
+
+                <!-- Columna Izquierda: Siguiente Nami y Jugadores -->
+                <div class="grid-left-col">
+
+                    <!-- Panel de Ruleta -->
+                    <div class="card-white card-roulette">
+                        <h4>🔥 Siguiente</h4>
+                        <div class="roulette-display">
+                            <div id="roulette-wheel" class="roulette-wheel">
+                                <span id="roulette-number">--</span>
+                            </div>
+                            <div class="called-counter">
+                                <span id="called-count">0</span>/75
+                            </div>
+                        </div>
+                        <!-- Historial de Últimos Números (Movido aquí) -->
+                        <div class="last-numbers-history">
+                            <h4>Historial</h4>
+                            <div id="last-numbers" class="balls-row-centered"></div>
+                        </div>
+                    </div>
+
+                    <!-- Controles de Juego -->
+                    <div class="card-white card-controls">
+                        <div class="tooltip-container">
+                            <button onclick="callNumber()" id="btn-call-number" class="btn-call-main">
+                                📣 LLAMAR
+                            </button>
+                            <span class="tooltip-text">Llama el siguiente número al azar.</span>
+                        </div>
+                        <div class="control-buttons-grid">
+                            <div class="tooltip-container">
+                                <button onclick="undoLast()" class="btn-control-secondary">↩️ Deshacer</button>
+                                <span class="tooltip-text">Deshace el último número llamado.</span>
+                            </div>
+                            <div class="tooltip-container" style="display: flex; flex-direction: column;">
+                                <button onclick="toggleAuto()" id="auto-btn" class="btn-control-secondary" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 1px solid transparent; margin-bottom: 0; padding-bottom: 4px;">▶️ Auto</button>
+                                <select id="auto-speed" class="btn-control-secondary" style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 0; padding: 4px; text-align: center; text-align-last: center; background: rgba(0,0,0,0.2); cursor: pointer; outline: none;" title="Velocidad">
+                                    <option value="3000">⏱️ 3 seg</option>
+                                    <option value="5000" selected>⏱️ 5 seg</option>
+                                    <option value="8000">⏱️ 8 seg</option>
+                                    <option value="10000">⏱️ 10 seg</option>
+                                </select>
+                                <span class="tooltip-text">Inicia o detiene el llamado automático y controla su velocidad.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Central: Historial y Tablero -->
+                <div class="grid-center-col">
+
+                    <!-- Tablero de Bingo (REPARADO: CUADRÍCULA 5 COLUMNAS) -->
+                    <div class="card-white"
+                        style="flex: 1; display: flex; flex-direction: column; padding: 12px; overflow: hidden;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700;">🔢 TABLERO
+                            </h4>
+                            <div class="board-actions">
+                                <div class="tooltip-container">
+                                    <button onclick="newRound()" class="btn-action-round">🔄 Nueva Ronda</button>
+                                    <span class="tooltip-text">Borra los números llamados para empezar una nueva
+                                        partida.</span>
+                                </div>
+                                <div class="tooltip-container">
+                                    <button onclick="fullReset()" class="btn-action-reset">⚠️ Reinicio</button>
+                                    <span class="tooltip-text">¡CUIDADO! Borra todos los datos del juego, incluyendo
+                                        jugadores.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="numbers-board" id="numbers-board">
+                            <div class="board-header-cell" style="color: var(--bingo-b);">B</div>
+                            <div class="board-header-cell" style="color: var(--bingo-i);">I</div>
+                            <div class="board-header-cell" style="color: var(--bingo-n);">N</div>
+                            <div class="board-header-cell" style="color: var(--bingo-g);">G</div>
+                            <div class="board-header-cell" style="color: var(--bingo-o);">O</div>
+                            <!-- Celdas generadas por JS aquí directamente -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Columna Derecha: Patrón y Audio -->
+                <div class="grid-right-col">
+
+                    <!-- Patrón Actual -->
+                    <div class="card-white" style="text-align: center; padding: 15px;">
+                        <h4 style="margin-bottom: 10px; color: var(--text-secondary); font-size: 0.85rem;">🎯 Patrón
+                        </h4>
+                        <div id="current-pattern-grid" class="mini-pattern-grid"></div>
+                        <span id="current-pattern-name"
+                            style="display: block; font-weight: 800; font-size: 0.9rem; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">LÍNEA</span>
+                        <div class="tooltip-container" style="margin-top: 12px;">
+                            <button onclick="showPatternSelector()" class="btn-primary"
+                                style="width: 100%; font-size: 0.8rem; padding: 10px 0;">Cambiar Figura</button>
+                            <span class="tooltip-text">Abre el selector para cambiar la figura ganadora.</span>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Pruebas (Temporal) -->
+                    <div class="card-white" style="padding: 12px; margin-top: 12px;">
+                        <button onclick="testPrintReport()" class="btn-primary btn-full"
+                            style="background: var(--text-secondary); font-size: 0.8rem; padding: 10px 0;">
+                            🖨️ Reporte PDF
+                        </button>
+                    </div>
+
+                    <div
+                        style="margin-top: auto; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+                        Modo Stream
+                    </div>
+                </div>
+            </div> <!-- FIN ADMIN GRID -->
+        </main>
+    </div> <!-- FIN APP CONTAINER -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MODALES -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Modal: Selector de Patrón -->
+    <div id="pattern-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>🎯 Seleccionar Patrón</h3>
+                <button onclick="hideModal('pattern-modal')" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="patterns-tabs">
+                    <button class="pattern-tab active" onclick="showPatternCategory('basic')">Básicos</button>
+                    <button class="pattern-tab" onclick="showPatternCategory('letters')">Letras</button>
+                    <button class="pattern-tab" onclick="showPatternCategory('shapes')">Figuras</button>
+                    <button class="pattern-tab" onclick="showPatternCategory('advanced')">Avanzados</button>
+                    <button class="pattern-tab" onclick="showPatternCategory('custom')">Personalizado</button>
+                </div>
+                <div id="patterns-grid" class="patterns-grid"></div>
+                <div id="custom-pattern-area" class="custom-pattern hidden">
+                    <p>Haz clic para activar/desactivar celdas:</p>
+                    <div id="custom-grid" class="custom-grid"></div>
+                    <button onclick="applyCustomPattern()" class="btn-primary">Aplicar Patrón Personalizado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Gestión de Jugadores (NUEVO DISEÑO GRANDE) -->
+    <div id="players-management-modal" class="modal hidden">
+        <div class="modal-content modal-xl">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <h3>👥 Gestión de Jugadores</h3>
+                    <span id="players-count" class="badge-glow" style="font-size: 0.8rem;">0 Total</span>
+                </div>
+                <button onclick="hideModal('players-management-modal')" class="btn-close">✕</button>
+            </div>
+
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button id="btn-tab-active" class="active" onclick="switchTab('active')">👥 Activos <span
+                        id="active-badge" class="badge">0</span></button>
+                <button id="btn-tab-pending" onclick="switchTab('pending')">⌛ Pendientes <span id="pending-badge"
+                        class="badge">0</span></button>
+                <button id="btn-tab-payments" onclick="switchTab('payments')">💸 Pagos <span id="payments-badge"
+                        class="badge">0</span></button>
+                <button id="btn-tab-winners" onclick="switchTab('winners')">🏆 Ganadores</button>
+                <button onclick="showAddPlayerModal()" class="btn-primary"
+                    style="margin-left: auto; padding: 5px 15px; font-size: 0.8rem;">➕ Añadir Manual</button>
+            </div>
+
+            <div class="modal-body" style="padding: 0; background: transparent;">
+                <!-- Panel Activos -->
+                <div id="active-tab" class="tab-content" style="display: block;">
+                    <div id="active-list" class="players-grid-view"></div>
+                </div>
+                <!-- Panel Pendientes -->
+                <div id="pending-tab" class="tab-content" style="display: none;">
+                    <div id="pending-list" class="players-grid-view"></div>
+                </div>
+                <!-- Panel Ganadores -->
+                <div id="winners-tab" class="tab-content" style="display: none;">
+                    <div id="winners-list" class="players-grid-view"></div>
+                </div>
+                <!-- Panel Verificación de Pagos -->
+                <div id="payments-tab" class="tab-content" style="display: none;">
+                    <div id="payments-list" class="payments-list-view"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Jugador -->
+    <div id="add-player-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>➕ Agregar Jugador Manual</h3>
+                <button onclick="hideModal('add-player-modal')" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre del jugador</label>
+                    <input type="text" id="new-player-name" placeholder="Nombre...">
+                </div>
+                <div class="form-group">
+                    <label>Cartones (separados por coma)</label>
+                    <input type="text" id="new-player-cards" placeholder="1, 5, 10...">
+                </div>
+                <button onclick="addPlayer()" class="btn-primary btn-full">Agregar Jugador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Estado de Cartones -->
+    <div id="card-status-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>🎫 Estado de Cartones</h3>
+                <button onclick="hideModal('card-status-modal')" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-stats">
+                    <div class="stat"><span id="stat-available">0</span> Disponibles</div>
+                    <div class="stat"><span id="stat-used">0</span> En uso</div>
+                </div>
+                <div id="cards-grid" class="cards-status-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Ganador Detalle (Rediseñado UX/UI Premium) -->
+    <div id="winner-detail-modal" class="modal hidden">
+        <div class="modal-content modal-winner">
+            <div class="winner-header">
+                <span class="trophy">🏆</span>
+                <h2>¡BINGO CANTADO!</h2>
+            </div>
+            <div class="winner-info">
+                <p>Ganó el Cartón: <span id="winner-card-id" style="color: var(--accent); font-weight: 800;">#00</span></p>
+                <p>Jugador: <span id="winner-name" style="color: var(--primary-light); font-weight: 800;">Jugador</span></p>
+                <p id="winner-pattern" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 5px;"></p>
+            </div>
+            <div id="winner-card-preview" class="card-preview"></div>
+            <button onclick="hideModal('winner-detail-modal')" class="btn-primary btn-glow" style="width: 100%; margin-top: 15px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; padding: 12px;">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Modal: Multibingo Ganadores -->
+    <div id="multibingo-modal" class="modal hidden">
+        <div class="modal-content modal-winner">
+            <div class="winner-header">
+                <span class="trophy">🏆</span>
+                <h2>¡MULTIBINGO!</h2>
+                <p style="color: var(--text-secondary); margin-top: 5px;">Ganadores Simultáneos</p>
+            </div>
+            <div id="multibingo-list" class="winners-list"
+                style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
+                <!-- Lista generada dinámicamente -->
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="printMultibingoReport()" class="btn-primary" style="flex: 1; background: #64748b;">🖨️
+                    Reporte PDF</button>
+                <button onclick="hideModal('multibingo-modal')" class="btn-primary" style="flex: 1;">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Historial de Partidas -->
+    <div id="history-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>📜 Historial de Partidas</h3>
+                <button onclick="hideModal('history-modal')" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="history-list" class="winners-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral de Configuración de Voz -->
+    <div id="voice-sidebar" class="admin-settings-sidebar">
+        <div class="sidebar-header">
+            <h3>Configuración de Voz</h3>
+            <button id="close-voice-sidebar" class="btn-close-sidebar">✕</button>
+        </div>
+        <div class="sidebar-content">
+            <div class="card-white card-voice">
+                <div class="voice-header">
+                    <h4>🔊 Locución</h4>
+                    <span id="admin-volume-display">80%</span>
+                </div>
+                <select id="admin-voice-selector" onchange="updateSelectedVoice()" class="card-white"
+                    style="width: 100%; padding: 6px; background: rgba(255,255,255,0.03); font-size: 0.8rem; margin-bottom: 10px;">
+                    <option value="">Automática</option>
+                </select>
+                <input type="range" id="admin-voice-volume" min="0" max="100" value="80"
+                    oninput="setAdminVoiceVolume(this.value)"
+                    style="width: 100%; accent-color: var(--primary); margin-bottom: 15px;">
+                <button onclick="testAdminVoice()" class="btn-primary btn-full"
+                    style="font-size: 0.9rem; padding: 10px;">🔊 Probar Voz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- JAVASCRIPT -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // SISTEMA DE AUDIO ADMIN
+        // ═══════════════════════════════════════════════════════════════
+        class AdminAudio {
+            constructor() {
+                this.ctx = null;
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) { }
+            }
+
+            tone(freq, dur, type = 'sine', vol = 0.3) {
+                if (!this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = type;
+                gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+                osc.start();
+                osc.stop(this.ctx.currentTime + dur);
+            }
+
+            numberCall() {
+                this.tone(600, 0.1, 'sawtooth');
+                setTimeout(() => this.tone(500, 0.1, 'sawtooth'), 50);
+                setTimeout(() => this.tone(400, 0.15, 'sawtooth'), 100);
+            }
+
+            bingo() {
+                this.tone(261.63, 0.8, 'triangle', 0.4);
+                setTimeout(() => this.tone(329.63, 0.8, 'triangle', 0.4), 100);
+                setTimeout(() => this.tone(392.00, 1.0, 'triangle', 0.4), 200);
+            }
+
+            newPlayer() {
+                this.tone(440, 0.1);
+                setTimeout(() => this.tone(554, 0.1), 100);
+            }
+
+            hover() {
+                this.tone(1200, 0.01, 'sine', 0.05);
+            }
+        }
+
+        const audio = new AdminAudio();
+
+        // ═══════════════════════════════════════════════════════════════
+        // ESTADO
+        // ═══════════════════════════════════════════════════════════════
+        const socket = io();
+        let calledNumbers = [];
+        let currentPattern = 'line';
+        let customGrid = Array(25).fill(false);
+        let isAutoPlaying = false;
+        let takenCards = new Set();
+        let winnersDetailsCache = {};
+        let currentMultibingoWinners = [];
+        let globalWinnersHistory = [];
+        let historyGroupsCache = [];
+
+        // Patrones se cargan desde el servidor (no hardcodeados)
+        let PATTERNS = {};
+
+        // Categorías para organizar los patrones en el selector
+        const PATTERN_CATEGORIES = {
+            basic: ['line', 'corners', 'full', 'corners_center', 'small_square', 'perimeter', 'inner_perimeter'],
+            letters: ['letter_t', 'letter_l', 'letter_h', 'letter_o', 'letter_x', 'letter_c', 'letter_u'],
+            shapes: ['x_shape', 'plus', 'diamond', 'heart', 'star', 'arrow', 'pyramid', 'cross', 'cross_center'],
+            advanced: ['frame', 'inner_square', 'hourglass', 'butterfly', 'checkerboard', 'crown', 'snake', 'zigzag']
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // GENERADOR DE CARTONES (igual que servidor)
+        // ═══════════════════════════════════════════════════════════════
+        function mulberry32(seed) {
+            return function () {
+                let t = seed += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+        }
+
+        function generateCard(cardId) {
+            const rng = mulberry32(cardId);
+            const fillCol = (min, max, count) => {
+                const nums = new Set();
+                let safety = 0;
+                while (nums.size < count && safety < 500) {
+                    nums.add(Math.floor(rng() * (max - min + 1)) + min);
+                    safety++;
+                }
+                return Array.from(nums);
+            };
+            const colN = fillCol(31, 45, 4);
+            return {
+                id: cardId,
+                B: fillCol(1, 15, 5),
+                I: fillCol(16, 30, 5),
+                N: [colN[0], colN[1], "FREE", colN[2], colN[3]],
+                G: fillCol(46, 60, 5),
+                O: fillCol(61, 75, 5)
+            };
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UI: TABLERO DE NÚMEROS
+        // ═══════════════════════════════════════════════════════════════
+        function initBoard() {
+            const board = document.getElementById('numbers-board');
+            board.innerHTML = '';
+
+            // Headers B I N G O
+            ['B', 'I', 'N', 'G', 'O'].forEach(letter => {
+                const h = document.createElement('div');
+                h.className = 'board-header-cell';
+                h.textContent = letter;
+                board.appendChild(h);
+            });
+
+            // Números 1-75 en columnas
+            const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
+            for (let row = 0; row < 15; row++) {
+                ranges.forEach(([min], colIdx) => {
+                    const num = min + row;
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    cell.id = `board-${num}`;
+                    cell.textContent = num;
+                    cell.onclick = () => callNumberDirect(num);
+                    board.appendChild(cell);
+                });
+            }
+        }
+
+        function markBoardNumber(num, marked = true) {
+            const cell = document.getElementById(`board-${num}`);
+            if (cell) {
+                cell.classList.toggle('called', marked);
+            }
+        }
+
+        function updateRoulette(num) {
+            const wheel = document.getElementById('roulette-wheel');
+            const display = document.getElementById('roulette-number');
+
+            wheel.classList.add('spin');
+            display.textContent = num;
+
+            setTimeout(() => wheel.classList.remove('spin'), 500);
+        }
+
+        function updateLastNumbers(arr) {
+            const container = document.getElementById('last-numbers');
+            container.innerHTML = arr.map(n => {
+                const letter = getLetterForNumber(n);
+                return `<div class="ball ${letter.toLowerCase()}">${n}</div>`;
+            }).join('');
+        }
+
+        function getLetterForNumber(n) {
+            if (n <= 15) return 'B';
+            if (n <= 30) return 'I';
+            if (n <= 45) return 'N';
+            if (n <= 60) return 'G';
+            return 'O';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UI: TABS
+        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════
+        // UI: SIDEBAR & NAVIGATION
+        // ═══════════════════════════════════════════════════════════════
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const btn = document.querySelector('.sidebar-toggle-btn');
+            sidebar.classList.toggle('collapsed');
+            btn.textContent = sidebar.classList.contains('collapsed') ? '❯' : '❮';
+        }
+
+        function switchActiveTab(tabId) {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const link = document.querySelector(`[onclick*="switchActiveTab('${tabId}')"]`);
+            if (link) link.classList.add('active');
+        }
+
+        function openPlayersModal() {
+            showModal('players-management-modal');
+            switchTab('active'); // Default tab
+        }
+
+        /**
+         * Maneja el cambio de pestañas en el panel de jugadores (Pendientes, Activos, Ganadores)
+         * @param {string} tab - El nombre del tab ('pending', 'active', 'winners')
+         */
+        function switchTab(tab) {
+            // 1. Actualizar visibilidad de los contenidos
+            const tabs = ['pending', 'active', 'winners'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`${t}-tab`);
+                if (el) el.style.display = (t === tab) ? 'block' : 'none';
+            });
+
+            // 2. Actualizar estado activo de los botones de pestaña
+            document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-tab-${tab}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            console.log(`📂 Pestaña cambiada a: ${tab}`);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UI: MODALES
+        // ═══════════════════════════════════════════════════════════════
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SELECTOR DE PATRONES
+        // ═══════════════════════════════════════════════════════════════
+        function showPatternSelector() {
+            showPatternCategory('basic');
+            showModal('pattern-modal');
+        }
+
+        function showPatternCategory(category) {
+            document.querySelectorAll('.pattern-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="showPatternCategory('${category}')"]`).classList.add('active');
+
+            const grid = document.getElementById('patterns-grid');
+            const customArea = document.getElementById('custom-pattern-area');
+
+            if (category === 'custom') {
+                grid.classList.add('hidden');
+                customArea.classList.remove('hidden');
+                initCustomGrid();
+            } else {
+                customArea.classList.add('hidden');
+                grid.classList.remove('hidden');
+
+                // Usar categorías predefinidas para filtrar
+                const patternIds = PATTERN_CATEGORIES[category] || [];
+                const filtered = patternIds
+                    .filter(key => PATTERNS[key]) // Solo mostrar si existe en PATTERNS
+                    .map(key => [key, PATTERNS[key]]);
+
+                grid.innerHTML = filtered.map(([key, pattern]) => `
+                    <div class="pattern-option ${currentPattern === key ? 'selected' : ''}" onclick="selectPattern('${key}')">
+                        <div class="pattern-mini-grid">${renderMiniGrid(pattern.positions)}</div>
+                        <span class="pattern-name">${pattern.name}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        /**
+         * Convierte índice de display (row-major) a índice flatCard (column-major).
+         * flatCard = [B0,B1,B2,B3,B4, I0..I4, N0..N4, G0..G4, O0..O4]
+         * display i = row*5+col -> flatCardIdx = col*5+row
+         */
+        function displayToFlatIdx(i) {
+            const row = Math.floor(i / 5), col = i % 5;
+            return col * 5 + row;
+        }
+
+        /**
+         * Renderiza mini grid. positions usa índices flatCard (igual que checkWin en servidor).
+         */
+        function renderMiniGrid(positions) {
+            if (!positions || !Array.isArray(positions)) return '';
+            const flatPos = positions.length > 0 && Array.isArray(positions[0])
+                ? positions[0]
+                : positions;
+            const flatSet = new Set(Array.isArray(flatPos[0]) ? flatPos.flat() : flatPos);
+
+            let html = '';
+            for (let i = 0; i < 25; i++) {
+                const flatIdx = displayToFlatIdx(i);
+                const isActive = flatSet.has(flatIdx);
+                const isFree = flatIdx === 12;
+                html += `<div class="mini-cell ${isActive ? 'active' : ''} ${isFree ? 'free' : ''}"></div>`;
+            }
+            return html;
+        }
+
+        function selectPattern(key) {
+            currentPattern = key;
+            socket.emit('admin_set_pattern', { type: key });
+            updatePatternDisplay();
+            hideModal('pattern-modal');
+        }
+
+        function initCustomGrid() {
+            const grid = document.getElementById('custom-grid');
+            grid.innerHTML = '';
+            
+            // REPARACIÓN: No resetear el grid si ya existe un patrón personalizado
+            // Solo inicializar si customGrid está vacío o estamos en una sesión fresca
+            if (!customGrid || customGrid.length !== 25) {
+                customGrid = Array(25).fill(false);
+                customGrid[12] = true; // FREE siempre activo
+            }
+
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = `custom-cell ${customGrid[i] ? 'active' : ''} ${i === 12 ? 'free' : ''}`;
+                cell.onclick = () => toggleCustomCell(i, cell);
+                grid.appendChild(cell);
+            }
+        }
+
+        function toggleCustomCell(idx, el) {
+            if (idx === 12) return; // FREE no se puede desactivar
+            customGrid[idx] = !customGrid[idx];
+            el.classList.toggle('active');
+        }
+
+        function applyCustomPattern() {
+            // REPARACIÓN: Enviar el grid actual al servidor
+            socket.emit('admin_set_pattern', { type: 'custom', grid: customGrid });
+            currentPattern = 'custom';
+            updatePatternDisplay();
+            hideModal('pattern-modal');
+        }
+
+        function updatePatternDisplay() {
+            const pattern = PATTERNS[currentPattern];
+            const nameEl = document.getElementById('current-pattern-name');
+
+            if (!pattern && currentPattern !== 'custom') {
+                console.warn(`⚠️ Patrón "${currentPattern}" no encontrado. Esperando...`);
+                if (nameEl) nameEl.textContent = 'Cargando...';
+                return;
+            }
+
+            if (nameEl) {
+                nameEl.textContent = pattern?.name || (currentPattern === 'custom' ? 'PERSONALIZADO' : currentPattern);
+            }
+
+            const grid = document.getElementById('current-pattern-grid');
+            if (!grid) return;
+
+            if (currentPattern === 'custom') {
+                // Asegurar que visualmente se vea bien (row-major display)
+                grid.innerHTML = customGrid.map((active, i) =>
+                    `<div class="large-pattern-cell ${active ? 'active' : ''} ${i === 12 ? 'free' : ''}">${i === 12 ? '★' : ''}</div>`
+                ).join('');
+            } else if (pattern && pattern.positions) {
+                grid.innerHTML = renderLargeGrid(pattern.positions);
+            } else {
+                grid.innerHTML = '<div class="pattern-loading">...</div>';
+            }
+        }
+
+        /**
+         * Función estandarizada para renderizar patrón (idéntica a index.html)
+         * Sistema de índices row-major (fila por fila, de izquierda a derecha):
+         * 
+         * Fila 0: índices  0,  1,  2,  3,  4
+         * Fila 1: índices  5,  6,  7,  8,  9
+         * Fila 2: índices 10, 11, 12, 13, 14  (12 = centro/free)
+         * Fila 3: índices 15, 16, 17, 18, 19
+         * Fila 4: índices 20, 21, 22, 23, 24
+         * 
+         * Índice = row * 5 + col
+         */
+        function renderLargeGrid(positions) {
+            if (!positions || !Array.isArray(positions)) return '';
+            const flatPos = positions.length > 0 && Array.isArray(positions[0])
+                ? positions[0]
+                : positions;
+            const flatSet = new Set(Array.isArray(flatPos[0]) ? flatPos.flat() : flatPos);
+
+            let html = '';
+            for (let i = 0; i < 25; i++) {
+                const flatIdx = displayToFlatIdx(i);
+                const isActive = flatSet.has(flatIdx);
+                const isFree = flatIdx === 12;
+                html += `<div class="large-pattern-cell ${isActive ? 'active' : ''} ${isFree ? 'free' : ''}">${isFree ? '★' : ''}</div>`;
+            }
+            return html;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ACCIONES DE JUEGO
+        // ═══════════════════════════════════════════════════════════════
+        function callNumber() {
+            const available = [];
+            for (let n = 1; n <= 75; n++) {
+                if (!calledNumbers.includes(n)) available.push(n);
+            }
+            if (available.length === 0) return;
+            const num = available[Math.floor(Math.random() * available.length)];
+            socket.emit('admin_call_number', num);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SISTEMA DE VOZ PARA ADMIN
+        // ═══════════════════════════════════════════════════════════════
+        let adminVoiceSettings = {
+            volume: 0.8
+        };
+
+        function setAdminVoiceVolume(value) {
+            adminVoiceSettings.volume = value / 100;
+            document.getElementById('admin-volume-display').textContent = `${value}%`;
+        }
+
+        function testAdminVoice() {
+            const msg = `¡Número ${Math.floor(Math.random() * 75) + 1}!`;
+            speakAdminNumber(msg);
+        }
+
+        let availableVoices = [];
+        let selectedVoiceName = '';
+
+        function loadVoices() {
+            availableVoices = speechSynthesis.getVoices();
+            const selector = document.getElementById('admin-voice-selector');
+            if (!selector) return;
+
+            const currentVal = selector.value;
+            selector.innerHTML = '<option value="">Selección automática</option>';
+
+            // Filtrar y ordenar voces en español primero
+            const sortedVoices = [...availableVoices].sort((a, b) => {
+                const isSpanA = a.lang.startsWith('es');
+                const isSpanB = b.lang.startsWith('es');
+                if (isSpanA && !isSpanB) return -1;
+                if (!isSpanA && isSpanB) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            sortedVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                if (v.name === currentVal) opt.selected = true;
+                selector.appendChild(opt);
+            });
+        }
+
+        function updateSelectedVoice() {
+            selectedVoiceName = document.getElementById('admin-voice-selector').value;
+        }
+
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
+
+        function speakAdminNumber(text) {
+            if (!('speechSynthesis' in window)) return;
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.volume = adminVoiceSettings.volume;
+
+            if (availableVoices.length === 0) loadVoices();
+
+            let preferredVoice = null;
+
+            // 1. Usar voz seleccionada manualmente
+            if (selectedVoiceName) {
+                preferredVoice = availableVoices.find(v => v.name === selectedVoiceName);
+            }
+
+            // 2. Búsqueda automática optimizada
+            if (!preferredVoice) {
+                // Prioridad 1: Español (México o España preferidos)
+                preferredVoice = availableVoices.find(v => v.lang === 'es-MX') ||
+                    availableVoices.find(v => v.lang === 'es-ES') ||
+                    availableVoices.find(v => v.lang.startsWith('es-'));
+
+                // Fallback: Primera disponible
+                if (!preferredVoice) preferredVoice = availableVoices[0];
+            }
+
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+                utterance.lang = preferredVoice.lang;
+            }
+
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
+
+        // Escuchar eventos de números llamados para anunciarlos
+        socket.on('number_called', (data) => {
+            // Pequeño delay para asegurar que el número esté visible
+            setTimeout(() => {
+                const msg = `${data.num}`;
+                speakAdminNumber(msg);
+            }, 500);
+        });
+
+        function callNumberDirect(num) {
+            if (!calledNumbers.includes(num)) {
+                socket.emit('admin_call_number', num);
+            }
+        }
+
+        function undoLast() {
+            socket.emit('admin_undo_number');
+        }
+
+        function toggleAuto() {
+            if (isAutoPlaying) {
+                socket.emit('admin_stop_auto');
+            } else {
+                const speed = document.getElementById('auto-speed')?.value || 5000;
+                socket.emit('admin_start_auto', parseInt(speed));
+            }
+        }
+
+        function callManualNumber() {
+            const input = document.getElementById('manual-number');
+            const num = parseInt(input.value);
+            if (isNaN(num) || num < 1 || num > 75) {
+                alert('Ingresa un número entre 1 y 75');
+                return;
+            }
+            socket.emit('admin_call_number', num);
+            input.value = '';
+        }
+
+        function setMessage() {
+            const msg = document.getElementById('admin-message').value.trim();
+            if (msg) {
+                socket.emit('admin_set_message', msg);
+            }
+        }
+
+        function logoutAdmin() {
+            localStorage.removeItem('bingo_admin_session');
+            window.location.href = '/admin-login.html';
+        }
+
+        function newRound() {
+            if (confirm('¿Iniciar nueva ronda? Se borrarán los números llamados.')) {
+                socket.emit('admin_reset');
+            }
+        }
+
+        function fullReset() {
+            if (confirm('⚠️ ¿REINICIO TOTAL? Se eliminarán todos los jugadores y datos.')) {
+                if (confirm('Esta acción no se puede deshacer. ¿Continuar?')) {
+                    socket.emit('admin_full_reset');
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // GESTIÓN DE JUGADORES
+        // ═══════════════════════════════════════════════════════════════
+        function updatePendingList(players) {
+            const list = document.getElementById('pending-list');
+            const badge = document.getElementById('pending-badge');
+            badge.textContent = players.length;
+
+            if (!players.length) {
+                list.innerHTML = '<div class="empty-state-card">No hay solicitudes pendientes</div>';
+                return;
+            }
+
+            list.innerHTML = players.map(p => `
+                <div class="player-card pending">
+                    <div class="player-card-header">
+                        <span class="name">👤 ${p.name}</span>
+                        <span class="status-badge pending">Pendiente</span>
+                    </div>
+                    <div class="player-card-body">
+                        <div class="info-row"><strong>📑 Cartones:</strong> ${p.cardCount}</div>
+                        <div class="info-row ids">${p.cardIds.map(id => `<span class="id-tag">#${id}</span>`).join(' ')}</div>
+                    </div>
+                    <div class="player-card-actions">
+                        <button onclick="acceptPlayer('${p.id}')" class="btn-accept">✅ Aceptar</button>
+                        <button onclick="rejectPlayer('${p.id}')" class="btn-reject">❌ Rechazar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateActiveList(players) {
+            const list = document.getElementById('active-list');
+            const badge = document.getElementById('active-badge');
+            badge.textContent = players.length;
+            const countEl = document.getElementById('players-count');
+            if (countEl) countEl.textContent = `${players.length} jugador${players.length === 1 ? '' : 'es'}`;
+
+            if (!players.length) {
+                list.innerHTML = '<div class="empty-state-card">No hay jugadores activos</div>';
+                return;
+            }
+
+            list.innerHTML = players.map(p => {
+                const isOnline = p.status === 'online';
+                const cardList = p.cardIds && p.cardIds.length > 0 
+                    ? p.cardIds.map(id => `<span class="id-tag">#${id}</span>`).join(' ') 
+                    : '<span class="id-tag empty">Sin cartones</span>';
+
+                return `
+                    <div class="player-card ${p.status}">
+                        <div class="player-card-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="name">👤 ${p.name}</span>
+                                <span class="lvl-badge" style="background: var(--primary); font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 800;">NV. ${p.level?.current || 1}</span>
+                            </div>
+                            <span class="status-badge ${p.status}">${isOnline ? 'En línea' : 'Desconectado'}</span>
+                        </div>
+                        <div class="player-card-body">
+                            <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span class="label">📑 Cartones (${p.cardCount}):</span>
+                                <span class="points" style="color: var(--accent); font-weight: 800; font-size: 0.8rem;">${p.stats?.totalPoints || 0} pts</span>
+                            </div>
+                            <div class="info-row ids">${cardList}</div>
+                        </div>
+                        <div class="player-card-actions">
+                            <button onclick="kickPlayer(${isOnline ? `'${p.id}'` : `{username: '${p.name}'}`})" 
+                                    class="btn-kick btn-full" 
+                                    title="Eliminar del sistema">
+                                    🚫 Expulsar Jugador
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateWinnersList(winners) {
+            const list = document.getElementById('winners-list');
+            if (!winners?.length) {
+                list.innerHTML = '<div class="empty-state-card">No hay ganadores aún</div>';
+                return;
+            }
+            list.innerHTML = winners.map(w => `
+                <div class="player-card winner">
+                    <div class="player-card-header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <span class="name">🏆 ${w.user}</span>
+                    </div>
+                    <div class="player-card-body">
+                        <div class="info-row"><strong>Cartón Ganador:</strong> #${w.card}</div>
+                        <div class="info-row"><strong>Hora:</strong> ${w.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function acceptPlayer(id) {
+            socket.emit('admin_accept_player', id);
+            audio.newPlayer();
+        }
+
+        function rejectPlayer(id) {
+            socket.emit('admin_reject_player', id);
+        }
+
+        function kickPlayer(idOrData) {
+            const message = typeof idOrData === 'string' ? '¿Expulsar a este jugador?' : '¿Eliminar a este jugador offline?';
+            if (confirm(message)) {
+                socket.emit('admin_kick_player', idOrData);
+            }
+        }
+
+        function showAddPlayerModal() {
+            showModal('add-player-modal');
+        }
+
+        function addPlayer() {
+            const name = document.getElementById('new-player-name').value.trim();
+            const cardsInput = document.getElementById('new-player-cards').value;
+
+            if (!name) return alert('Ingresa un nombre');
+
+            const cardIds = cardsInput.split(',')
+                .map(s => parseInt(s.trim()))
+                .filter(n => !isNaN(n) && n >= 1 && n <= 300);
+
+            if (cardIds.length === 0) return alert('Ingresa cartones válidos');
+
+            socket.emit('admin_add_player', { name, cardIds });
+            hideModal('add-player-modal');
+            document.getElementById('new-player-name').value = '';
+            document.getElementById('new-player-cards').value = '';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ESTADO DE CARTONES
+        // ═══════════════════════════════════════════════════════════════
+        function showCardStatusModal() {
+            socket.emit('get_card_availability');
+            showModal('card-status-modal');
+        }
+
+        function updateCardStatus(data) {
+            takenCards = new Set(data.takenCards);
+
+            document.getElementById('stat-available').textContent = data.availableCount;
+            document.getElementById('stat-used').textContent = data.usedCount;
+
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+
+            for (let i = 1; i <= 300; i++) {
+                const cell = document.createElement('div');
+                cell.className = `card-status-cell ${takenCards.has(i) ? 'taken' : 'available'}`;
+                cell.textContent = i;
+                cell.title = takenCards.has(i) ? 'En uso' : 'Disponible';
+                grid.appendChild(cell);
+            }
+        }
+
+        // 👑 RENDERIZADO DE CARTÓN GANADOR
+        
+        window.viewWinnerDetailAdmin = function(cardId) {
+            const winner = currentMultibingoWinners.find(w => w.card == cardId);
+            if (!winner) return;
+            
+            document.getElementById('winner-name').textContent = winner.user;
+            document.getElementById('winner-card-id').textContent = '#' + winner.card;
+            document.getElementById('winner-pattern').textContent = 'Figura: ' + (winner.patternName || winner.pattern);
+            
+            const preview = document.getElementById('winner-card-preview');
+            if (preview) {
+                preview.innerHTML = renderWinnerCardHTML(winner.cardGrid, winner.winningIndices || []);
+            }
+            showModal('winner-detail-modal');
+        };
+
+        function renderWinnerCardHTML(grid, matchedIndices) {
+            if (!grid || grid.length !== 25) return '<p>No se pudo cargar el cartón</p>';
+            
+            let html = `
+                <div class="winner-card-container">
+                    <div class="winner-header-row">
+                        <div class="winner-h-cell b">B</div>
+                        <div class="winner-h-cell i">I</div>
+                        <div class="winner-h-cell n">N</div>
+                        <div class="winner-h-cell g">G</div>
+                        <div class="winner-h-cell o">O</div>
+                    </div>
+                    <div class="winner-grid">
+            `;
+
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const idx = col * 5 + row;
+                    const num = grid[idx];
+                    const isMatched = matchedIndices.includes(idx);
+                    const isFree = num === "FREE";
+                    const classes = `winner-cell ${isMatched ? 'match' : ''} ${isFree ? 'free' : ''}`;
+                    html += `<div class="${classes}">${isFree ? '⭐' : num}</div>`;
+                }
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+            return html;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SOCKET EVENTS
+        // ═══════════════════════════════════════════════════════════════
+        socket.on('connect', () => {
+            document.getElementById('connection-status').className = 'status-indicator online';
+            document.getElementById('connection-status').innerHTML = '🟢 Conectado';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').className = 'status-indicator offline';
+            document.getElementById('connection-status').innerHTML = '🔴 Desconectado';
+        });
+
+        socket.on('sync_state', (state) => {
+            calledNumbers = state.calledNumbers;
+            currentPattern = state.pattern;
+            isAutoPlaying = state.isAutoPlaying || false;
+
+            const autoBtn = document.getElementById('auto-btn');
+            const callBtn = document.getElementById('btn-call-number');
+            if (isAutoPlaying) {
+                if (autoBtn) { autoBtn.innerHTML = '⏹️ Detener'; autoBtn.classList.add('active'); }
+                if (callBtn) callBtn.disabled = true;
+                const speedSelect = document.getElementById('auto-speed');
+                if (speedSelect) speedSelect.disabled = true;
+            } else {
+                if (autoBtn) { autoBtn.innerHTML = '▶️ Auto'; autoBtn.classList.remove('active'); }
+                if (callBtn) callBtn.disabled = false;
+                const speedSelect = document.getElementById('auto-speed');
+                if (speedSelect) speedSelect.disabled = false;
+            }
+
+            // Sincronizar patrones recibidos del servidor (fuente de verdad)
+            if (state.patterns && state.patterns.length > 0) {
+                PATTERNS = {}; // Limpiar patrones anteriores
+                state.patterns.forEach(p => {
+                    PATTERNS[p.id] = {
+                        name: p.name,
+                        description: p.description || '',
+                        positions: p.positions || [],
+                        multiplier: p.multiplier || 1
+                    };
+                });
+                console.log('✅ Patrones sincronizados desde servidor:', Object.keys(PATTERNS).length);
+            }
+
+            // REPARACIÓN: Si hay un patrón personalizado activo en el servidor, sincronizar el grid local
+            if (state.customPattern && Array.isArray(state.customPattern)) {
+                customGrid = [...state.customPattern];
+                console.log('✅ Custom Pattern Grid sincronizado');
+            }
+
+            document.getElementById('called-count').textContent = calledNumbers.length;
+            document.getElementById('admin-message').value = state.message;
+
+            calledNumbers.forEach(n => markBoardNumber(n, true));
+            updateLastNumbers(state.last5Numbers);
+            globalWinnersHistory = state.last5Winners; // Guardar historial completo
+            updateWinnersList(state.last5Winners);
+            updatePatternDisplay();
+
+            // Actualizar último número en el display superior
+            if (state.calledNumbers.length > 0) {
+                const lastNum = state.calledNumbers[state.calledNumbers.length - 1];
+                document.getElementById('roulette-number').textContent = lastNum;
+            } else {
+                document.getElementById('roulette-number').textContent = '--';
+            }
+        });
+
+        socket.on('number_called', (data) => {
+            calledNumbers.push(data.num);
+            markBoardNumber(data.num, true);
+            updateRoulette(data.num);
+            updateLastNumbers(data.last5);
+            document.getElementById('called-count').textContent = data.totalCalled;
+            audio.numberCall();
+        });
+
+        socket.on('number_undone', (data) => {
+            calledNumbers = data.calledNumbers;
+            markBoardNumber(data.number, false);
+            updateLastNumbers(data.last5);
+            document.getElementById('called-count').textContent = data.totalCalled;
+            document.getElementById('roulette-number').textContent =
+                calledNumbers.length > 0 ? calledNumbers[calledNumbers.length - 1] : '--';
+        });
+
+        socket.on('pattern_changed', (data) => {
+            currentPattern = data.type;
+            if (data.grid) {
+                customGrid = data.grid;
+            }
+            // Actualizar PATTERNS con la información recibida del servidor
+            if (data.type) {
+                if (!PATTERNS[data.type]) PATTERNS[data.type] = {};
+                PATTERNS[data.type].name = data.name || PATTERNS[data.type].name;
+                PATTERNS[data.type].description = data.description ?? PATTERNS[data.type].description;
+                PATTERNS[data.type].positions = data.positions ?? PATTERNS[data.type].positions;
+                PATTERNS[data.type].multiplier = data.multiplier ?? PATTERNS[data.type].multiplier ?? 1;
+            }
+            updatePatternDisplay();
+        });
+
+        socket.on('update_pending_players', updatePendingList);
+        socket.on('update_players', updateActiveList);
+        socket.on('update_history', (winners) => {
+            globalWinnersHistory = winners;
+            updateWinnersList(winners);
+        });
+
+        socket.on('new_player_pending', (data) => {
+            audio.newPlayer();
+            switchTab('pending');
+            // Opcional: Abrir modal automáticamente si se desea
+            // openPlayersModal(); 
+            // O solo actualizar badge
+        });
+
+        socket.on('winner_announced', (data) => {
+            audio.bingo();
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+
+            document.getElementById('winner-name').textContent = data.user;
+            document.getElementById('winner-card-id').textContent = `#${data.card}`;
+            
+            // Buscar nombre del patrón si está disponible localmente
+            const patternInfo = PATTERNS[data.pattern];
+            const patternName = patternInfo?.name || data.patternName || data.pattern;
+            document.getElementById('winner-pattern').textContent = `Figura: ${patternName}`;
+
+            // Renderizar la vista previa del cartón ganador
+            const preview = document.getElementById('winner-card-preview');
+            if (preview) {
+                preview.innerHTML = renderWinnerCardHTML(data.cardGrid, data.winningIndices || []);
+            }
+
+            showModal('winner-detail-modal');
+        });
+
+        socket.on('multibingo', (data) => {
+            audio.bingo();
+            currentMultibingoWinners = data.winners;
+            confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 } });
+
+            const list = document.getElementById('multibingo-list');
+            list.innerHTML = data.winners.map(w => `
+                <div class="player-card winner" style="margin-bottom: 8px;">
+                    <div class="player-card-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <span class="name" style="font-size: 0.9rem; color: white; font-weight: 700;">🏆 ${w.user}</span>
+                        <button onclick="viewMultibingoCard(${w.card})" class="btn-sm" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;">Ver Cartón</button>
+                    </div>
+                    <div class="player-card-body" style="padding: 8px 12px;">
+                        <div class="info-row"><strong>Cartón:</strong> #${w.card}</div>
+                        <div class="info-row"><strong>Patrón:</strong> ${w.patternName || w.pattern}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            showModal('multibingo-modal');
+        });
+
+        function printMultibingoReport() {
+            if (!currentMultibingoWinners || currentMultibingoWinners.length === 0) return;
+
+            const printWindow = window.open('', '_blank');
+            const date = new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas' });
+
+            let html = `
+                <html>
+                <head>
+                    <title>Reporte Multibingo - ${date}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; }
+                        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+                        h1 { margin: 0; color: #2c3e50; font-size: 24px; }
+                        .meta { color: #7f8c8d; margin-top: 10px; font-size: 14px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                        th { background-color: #f8f9fa; color: #2c3e50; font-weight: 600; text-align: left; padding: 12px; border-bottom: 2px solid #e9ecef; }
+                        td { padding: 12px; border-bottom: 1px solid #e9ecef; color: #555; }
+                        tr:last-child td { border-bottom: none; }
+                        .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #aaa; border-top: 1px solid #eee; padding-top: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>🏆 Reporte Oficial de Multibingo</h1>
+                        <div class="meta">
+                            Fecha: ${date} • Total Ganadores: ${currentMultibingoWinners.length}
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Jugador</th>
+                                <th>Cartón</th>
+                                <th>Patrón</th>
+                                <th>Hora</th>
+                                <th style="text-align: right;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            currentMultibingoWinners.forEach(w => {
+                html += `
+                    <tr>
+                        <td><strong>${w.user}</strong></td>
+                        <td><span style="font-family:monospace">#${w.card}</span></td>
+                        <td>${w.patternName || w.pattern}</td>
+                        <td>${w.time}</td>
+                        <td style="text-align: right;">
+                            <button onclick="viewWinnerDetailAdmin('${w.card}')" style="background: var(--primary); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">👁️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                    <div class="footer">
+                        Yovanny Bingo System • Reporte generado automáticamente
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                <\/body>
+                <\/html>
+            `;
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
+
+        function testPrintReport() {
+            currentMultibingoWinners = [
+                { user: 'Jugador Prueba 1', card: 105, pattern: 'line', time: '10:30', patternName: 'LÍNEA' },
+                { user: 'Jugador Prueba 2', card: 22, pattern: 'line', time: '10:30', patternName: 'LÍNEA' },
+                { user: 'Jugador Prueba 3', card: 88, pattern: 'line', time: '10:30', patternName: 'LÍNEA' }
+            ];
+            printMultibingoReport();
+        }
+
+        function showHistoryModal() {
+            const list = document.getElementById('history-list');
+            if (!globalWinnersHistory || globalWinnersHistory.length === 0) {
+                list.innerHTML = '<div class="empty-state-card">No hay historial disponible</div>';
+                showModal('history-modal');
+                return;
+            }
+
+            // Agrupar ganadores por evento único (tiempo + números llamados)
+            const groups = {};
+            const orderedGroups = [];
+            const seenKeys = new Set();
+
+            globalWinnersHistory.forEach(w => {
+                const key = `${w.time}-${w.numbersCalled}`;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(w);
+
+                if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    orderedGroups.push(key);
+                }
+            });
+
+            historyGroupsCache = orderedGroups.map(key => groups[key]);
+
+            list.innerHTML = historyGroupsCache.map((group, index) => {
+                const w = group[0];
+                const isMulti = group.length > 1;
+                const winnersNames = group.map(p => `${p.user} (#${p.card})`).join(', ');
+
+                return `
+                    <div class="player-card" style="margin-bottom: 10px; background: rgba(255,255,255,0.03);">
+                        <div class="player-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="name">${w.time} - ${w.patternName || w.pattern}</span>
+                            <span class="badge" style="background: ${isMulti ? 'var(--warning)' : 'var(--success)'}; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;">
+                                ${isMulti ? 'Multibingo' : 'Bingo'}
+                            </span>
+                        </div>
+                        <div class="player-card-body">
+                            <div class="info-row"><strong>Ganadores:</strong> ${winnersNames}</div>
+                            <div class="info-row"><strong>Bolas:</strong> ${w.numbersCalled}</div>
+                        </div>
+                        <div class="player-card-actions">
+                            <button onclick="printHistoryReport(${index})" class="btn-primary btn-full" style="font-size: 0.8rem;">
+                                🖨️ Reimprimir Reporte
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            showModal('history-modal');
+        }
+
+        function printHistoryReport(index) {
+            const winners = historyGroupsCache[index];
+            if (winners) {
+                currentMultibingoWinners = winners;
+                printMultibingoReport();
+            }
+        }
+
+        socket.on('winner_card_details', (data) => {
+            winnersDetailsCache[data.cardId] = data;
+            renderWinnerCardPreview(data);
+        });
+
+        function renderWinnerCardPreview(data) {
+            const preview = document.getElementById('winner-card-preview');
+            const card = data.card;
+
+            preview.innerHTML = `
+                <div class="preview-grid">
+                    ${['B', 'I', 'N', 'G', 'O'].map(l => `<div class="preview-header">${l}</div>`).join('')}
+                    ${[0, 1, 2, 3, 4].map(row =>
+                ['B', 'I', 'N', 'G', 'O'].map(col => {
+                    const val = card[col][row];
+                    const isFree = val === "FREE";
+                    const isMarked = isFree || data.calledNumbers.includes(val);
+                    return `<div class="preview-cell ${isMarked ? 'marked' : ''}">${isFree ? '★' : val}</div>`;
+                }).join('')
+            ).join('')}
+                </div>
+            `;
+        }
+
+        function viewMultibingoCard(cardId) {
+            const data = winnersDetailsCache[cardId];
+            if (data) {
+                document.getElementById('winner-name').textContent = data.username;
+                document.getElementById('winner-card-id').textContent = `#${data.cardId}`;
+
+                const patternName = PATTERNS[data.pattern]?.name || data.pattern;
+                document.getElementById('winner-pattern').textContent = `Patrón: ${patternName}`;
+
+                renderWinnerCardPreview(data);
+                showModal('winner-detail-modal');
+            } else {
+                alert('Cargando detalles del cartón...');
+            }
+        }
+
+        socket.on('auto_play_started', () => {
+            isAutoPlaying = true;
+            const btn = document.getElementById('auto-btn');
+            btn.innerHTML = '⏹️ Detener';
+            btn.classList.add('active');
+            
+            const callBtn = document.getElementById('btn-call-number');
+            if (callBtn) callBtn.disabled = true;
+            
+            const speedSelect = document.getElementById('auto-speed');
+            if (speedSelect) speedSelect.disabled = true;
+        });
+
+        socket.on('auto_play_stopped', () => {
+            isAutoPlaying = false;
+            const btn = document.getElementById('auto-btn');
+            btn.innerHTML = '▶️ Auto';
+            btn.classList.remove('active');
+            
+            const callBtn = document.getElementById('btn-call-number');
+            if (callBtn) callBtn.disabled = false;
+            
+            const speedSelect = document.getElementById('auto-speed');
+            if (speedSelect) speedSelect.disabled = false;
+        });
+
+        socket.on('game_reset', () => {
+            calledNumbers = [];
+            document.querySelectorAll('.board-cell').forEach(c => c.classList.remove('called'));
+            document.getElementById('roulette-number').textContent = '--';
+            document.getElementById('called-count').textContent = '0';
+            document.getElementById('last-numbers').innerHTML = '';
+        });
+
+        socket.on('card_availability', updateCardStatus);
+
+        socket.on('admin_success', (data) => {
+            alert(data.message);
+        });
+
+        socket.on('admin_error', (data) => {
+            alert('Error: ' + data.message);
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // INICIALIZACIÓN
+        // ═══════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', () => {
+            initBoard();
+            updatePatternDisplay();
+
+            document.getElementById('admin-message').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') setMessage();
+            });
+
+            const oldChat = document.getElementById('chat-input');
+            if (oldChat) {
+                oldChat.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendChatMessage();
+                });
+            }
+
+            // Eventos para el sidebar de voz
+            document.getElementById('toggle-voice-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('voice-sidebar').classList.add('open');
+            });
+
+            document.getElementById('close-voice-sidebar').addEventListener('click', () => {
+                document.getElementById('voice-sidebar').classList.remove('open');
+            });
+
+            // Efectos de sonido UI (Hover)
+            const uiElements = document.querySelectorAll('button, .nav-link, .tooltip-container, .btn-primary, .btn-action-round, .btn-action-reset');
+            uiElements.forEach(el => {
+                el.addEventListener('mouseenter', () => audio.hover());
+            });
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // CHAT GLOBAL Y MODERACIÓN
+        // ═══════════════════════════════════════════════════════════════
+        let unreadModernChatCount = 0;
+
+        window.toggleModernChat = function() {
+            const panel = document.getElementById('modern-chat-panel');
+            if(!panel) return;
+            
+            if (panel.classList.contains('hidden') || !panel.classList.contains('open')) {
+                panel.classList.remove('hidden');
+                panel.style.display = 'flex'; // Fix para cache CSS
+                setTimeout(() => {
+                    panel.classList.add('open');
+                    unreadModernChatCount = 0;
+                    const badge = document.getElementById('chat-badge');
+                    if(badge) badge.classList.add('hidden');
+                    scrollToBottomModernChat();
+                    const input = document.getElementById('modern-chat-input');
+                    if (input) input.focus();
+                }, 30);
+            } else {
+                panel.classList.remove('open');
+                setTimeout(() => {
+                    panel.classList.add('hidden');
+                    panel.style.display = '';
+                }, 400); 
+            }
+        };
+
+        window.sendModernMessage = function() {
+            const input = document.getElementById('modern-chat-input');
+            const text = input.value.trim();
+            if (text) {
+                socket.emit('admin_send_chat', text);
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        window.toggleQuickMessages = function() {
+            const menu = document.getElementById('quick-messages-menu');
+            if (menu) menu.classList.toggle('hidden');
+        };
+
+        // Cerrar menú al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            const wrapper = document.querySelector('.quick-messages-wrapper');
+            const menu = document.getElementById('quick-messages-menu');
+            if (wrapper && menu && !wrapper.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        window.sendModernReaction = function(emoji) {
+            socket.emit('admin_send_chat', emoji);
+            const input = document.getElementById('modern-chat-input');
+            if (input) input.focus();
+            const menu = document.getElementById('quick-messages-menu');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        window.deleteChatMessage = function(msgId) {
+            if (confirm('¿Eliminar este mensaje?')) {
+                socket.emit('admin_delete_chat', msgId);
+            }
+        }
+
+        window.scrollToBottomModernChat = function() {
+            setTimeout(() => {
+                const container = document.getElementById('modern-chat-messages');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+
+        window.appendModernMessage = function(data) {
+            const container = document.getElementById('modern-chat-messages');
+            if (!container) return;
+
+            const isMine = data.isAdmin === true; // En el panel admin, "mío" son los del admin
+            const isEmojiOnly = /^(\p{Emoji}|\s)+$/u.test(data.text) && data.text.length < 15;
+
+            const div = document.createElement('div');
+            div.id = `chat-msg-${data.id}`;
+            
+            let classes = 'modern-bubble-wrapper ';
+            if (isMine) classes += 'is-mine';
+            else if (data.isAdmin) classes += 'is-admin'; // If another admin
+            else classes += 'is-other';
+            
+            div.className = classes;
+            div.style.position = 'relative';
+
+            let avatarText = isMine ? '👑' : (data.user ? data.user.charAt(0).toUpperCase() : '👤');
+
+            div.innerHTML = `
+                ${!isMine ? `<div class="chat-avatar ${data.isAdmin ? 'admin-avatar' : ''}">${avatarText}</div>` : ''}
+                <div class="modern-bubble">
+                    ${!isMine ? `<span class="modern-sender">${data.isAdmin ? 'Administrador' : data.user}</span>` : ''}
+                    <div class="modern-text ${isEmojiOnly ? 'emoji-jumbo' : ''}">${data.text}</div>
+                    <span class="modern-time">${data.time}</span>
+                </div>
+                <button onclick="deleteChatMessage('${data.id}')" 
+                        style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; z-index: 10;" 
+                        class="delete-btn">✕</button>
+            `;
+
+            // Mostrar botón de borrar al pasar el mouse
+            div.onmouseover = () => { const btn = div.querySelector('.delete-btn'); if(btn) btn.style.opacity = '1'; };
+            div.onmouseout = () => { const btn = div.querySelector('.delete-btn'); if(btn) btn.style.opacity = '0'; };
+
+            container.appendChild(div);
+
+            // Mantener últimos 50 mensajes (preservando bienvenida)
+            while (container.children.length > 50) {
+                container.removeChild(container.children[1]);
+            }
+
+            scrollToBottomModernChat();
+
+            // Lógica de notificaciones
+            const panel = document.getElementById('modern-chat-panel');
+            if (panel && !panel.classList.contains('open')) {
+                unreadModernChatCount++;
+                const badge = document.getElementById('chat-badge');
+                if (badge) {
+                    badge.textContent = unreadModernChatCount > 9 ? '9+' : unreadModernChatCount;
+                    badge.classList.remove('hidden');
+                }
+            }
+        }
+
+        socket.on('chat_message', (data) => {
+            appendModernMessage(data);
+        });
+
+        socket.on('chat_message_deleted', (msgId) => {
+            const el = document.getElementById(`chat-msg-${msgId}`);
+            if (el) el.remove();
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // 💰 GESTIÓN ECONÓMICA & PAGOS (JS)
+        // ═══════════════════════════════════════════════════════════════
+
+        // 💰 GESTIÓN ECONÓMICA REFACTURADA (v16)
+        function showEconomyModal() {
+            socket.emit('get_economy_data');
+            showModal('economy-modal');
+            switchEconomyTab('eco-stats');
+        }
+
+        function switchEconomyTab(tabId) {
+            // Sidebar buttons highlight - Refined for v16.1
+            document.querySelectorAll('.economy-tab-btn').forEach(btn => {
+                const btnTabId = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                btn.classList.toggle('active', btnTabId === tabId);
+            });
+
+            // Content panes visibility with Fade-In effect
+            document.querySelectorAll('#economy-tabs-container .tab-pane').forEach(pane => {
+                if (pane.id === tabId) {
+                    pane.classList.remove('hidden');
+                    pane.classList.add('active');
+                } else {
+                    pane.classList.add('hidden');
+                    pane.classList.remove('active');
+                }
+            });
+
+            if (tabId === 'eco-stats') {
+                // Pequeño delay para que la animación se vea después del cambio de tab
+                setTimeout(renderSalesSparkline, 100);
+            }
+        }
+
+        function renderSalesSparkline() {
+            const container = document.getElementById('sales-sparkline');
+            if (!container) return;
+            
+            // Generar datos aleatorios si no hay reales para la demo visual
+            const points = [45, 60, 35, 70, 85, 55, 90, 75, 80, 65, 40, 95, 70, 85, 60];
+            
+            container.innerHTML = points.map(h => `<div class="chart-bar" style="height: 0%;" data-h="${h}%"></div>`).join('');
+            
+            // Animación escalonada (Staggered Animation)
+            const bars = container.querySelectorAll('.chart-bar');
+            bars.forEach((bar, index) => {
+                setTimeout(() => {
+                    bar.style.height = bar.getAttribute('data-h');
+                }, index * 40); // 40ms de delay entre cada barra
+            });
+        }
+
+        function savePrizes() {
+            const prizes = {
+                line: parseFloat(document.getElementById('prize-line').value) || 0,
+                fourCorners: parseFloat(document.getElementById('prize-corners').value) || 0,
+                special: parseFloat(document.getElementById('prize-special').value) || 0,
+                bingo: parseFloat(document.getElementById('prize-bingo').value) || 0
+            };
+            socket.emit('admin_update_prizes', prizes);
+        }
+
+        // Sistema de pestañas mejorado para incluir Pagos
+        function switchTab(tab) {
+            const tabs = ['active', 'pending', 'winners', 'payments'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`${t}-tab`);
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (content) content.style.display = (t === tab) ? 'block' : 'none';
+                if (btn) btn.className = (t === tab) ? 'active' : '';
+            });
+
+            if (tab === 'payments') {
+                socket.emit('get_pending_payments');
+            }
+        }
+
+        function updatePaymentsList(transactions) {
+            const list = document.getElementById('payments-list');
+            const badge = document.getElementById('payments-badge');
+            if (badge) badge.textContent = transactions.length;
+
+            if (!transactions.length) {
+                list.innerHTML = '<div class="empty-state-card">No hay pagos pendientes de verificación</div>';
+                return;
+            }
+
+            list.innerHTML = transactions.map(t => `
+                <div class="payment-verify-card">
+                    <div class="user-info">
+                        <span class="username">👤 ${t.username}</span>
+                        <span class="date">${new Date(t.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div>
+                        <span class="reference-tag">${t.reference}</span>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">${t.method}</div>
+                    </div>
+                    <div style="font-weight: 800; color: var(--success); font-size: 1.1rem;">
+                        $${t.amount.toFixed(2)}
+                    </div>
+                    <div class="payment-verify-actions">
+                        <button onclick="verifyPayment('${t._id}', 'approved')" class="btn-accept">✅ Aprobar</button>
+                        <button onclick="verifyPayment('${t._id}', 'rejected')" class="btn-reject">❌ Rechazar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function verifyPayment(id, status) {
+            const notes = status === 'rejected' ? prompt('Motivo del rechazo (opcional):') : '';
+            socket.emit('admin_verify_payment', { id, status, notes });
+        }
+
+        // Lógica de Economía Config
+        let currentEconomyConfig = { modoCobro: 'per_card' };
+
+        function setEconomyMode(mode) {
+            currentEconomyConfig.modoCobro = mode;
+            const btnCard = document.getElementById('mode-per-card');
+            const btnGame = document.getElementById('mode-per-game');
+            if (btnCard) btnCard.className = (mode === 'per_card') ? 'btn-toggle active' : 'btn-toggle';
+            if (btnGame) btnGame.className = (mode === 'per_game') ? 'btn-toggle active' : 'btn-toggle';
+            
+            // Actualizar el footer visual
+            const footerMode = document.getElementById('footer-mode-display');
+            if (footerMode) {
+                footerMode.textContent = (mode === 'per_card') ? 'Cobro por Cartón' : 'Cobro por Entrada';
+            }
+
+            const labelPrice = document.getElementById('label-price-main');
+            if (labelPrice) {
+                labelPrice.textContent = (mode === 'per_card' ? 'Créditos x Cartón:' : 'Créditos x Entrada:');
+            }
+        }
+
+        function saveEconomyConfig() {
+            const config = {
+                modoCobro: currentEconomyConfig.modoCobro,
+                valorCredito: parseFloat(document.getElementById('eco-credit-val').value) || 1.0,
+                precioPorCarton: currentEconomyConfig.modoCobro === 'per_card' ? parseInt(document.getElementById('eco-price-unit').value) : 1,
+                precioPorEntrada: currentEconomyConfig.modoCobro === 'per_game' ? parseInt(document.getElementById('eco-price-unit').value) : 5,
+                demoMode: document.getElementById('eco-demo-mode').checked
+            };
+            socket.emit('admin_update_economy_config', config);
+        }
+
+        // Recepción de datos económicos
+        socket.on('economy_data', (data) => {
+            if (data.prizes) {
+                document.getElementById('prize-line').value = data.prizes.line || 0;
+                document.getElementById('prize-corners').value = data.prizes.fourCorners || 0;
+                document.getElementById('prize-special').value = data.prizes.special || 0;
+                document.getElementById('prize-bingo').value = data.prizes.bingo || 0;
+            }
+            if (data.economyConfig) {
+                currentEconomyConfig = data.economyConfig;
+                setEconomyMode(data.economyConfig.modoCobro);
+                document.getElementById('eco-credit-val').value = data.economyConfig.valorCredito || 1.0;
+                const priceInput = document.getElementById('eco-price-unit');
+                if (priceInput) {
+                    priceInput.value = (data.economyConfig.modoCobro === 'per_card' ? data.economyConfig.precioPorCarton : data.economyConfig.precioPorEntrada) || 0;
+                }
+                document.getElementById('eco-demo-mode').checked = data.economyConfig.demoMode || false;
+            }
+        });
+
+        socket.on('admin_economy_saved', () => {
+             alert('🚀 Configuración Maestra aplicada con éxito.');
+        });
+
+        socket.on('update_payments_list', updatePaymentsList);
+
+        socket.on('admin_prizes_saved', () => {
+            alert('✅ Premios actualizados correctamente');
+            hideModal('economy-modal');
+        });
+    </script>
+
+    <!-- Panel de Chat (Agregado para Admin) -->
+    <div id="modern-chat-panel" class="modern-chat-container hidden">
+        <div class="modern-chat-header">
+            <div class="chat-title">
+                <span class="chat-icon">💬</span>
+                <h3>Sala de Bingo (Admin)</h3>
+            </div>
+            <button onclick="toggleModernChat()" class="btn-close-chat">✕</button>
+        </div>
+        <div id="modern-chat-messages" class="modern-chat-messages">
+            <div class="chat-welcome">¡Bienvenidos al chat global!</div>
+        </div>
+        <div class="modern-chat-reactions">
+            <button onclick="sendModernReaction('👍')">👍</button>
+            <button onclick="sendModernReaction('🚫')">🚫</button>
+            <button onclick="sendModernReaction('⚠️')">⚠️</button>
+            <button onclick="sendModernReaction('🎉')">🎉</button>
+        </div>
+        <div class="modern-chat-input-wrapper">
+            <div class="quick-messages-wrapper">
+                <button onclick="toggleQuickMessages()" class="btn-quick-msg" title="Mensajes Rápidos" type="button">⚡</button>
+                <div id="quick-messages-menu" class="quick-messages-menu hidden">
+                    <button type="button" onclick="sendModernReaction('¡Preparen sus cartones! 📝')">¡Preparen sus cartones! 📝</button>
+                    <button type="button" onclick="sendModernReaction('¡Atención al próximo número! 🎯')">¡Atención al próximo número! 🎯</button>
+                    <button type="button" onclick="sendModernReaction('¡Felicidades al ganador! 🏆')">¡Felicidades al ganador! 🏆</button>
+                    <button type="button" onclick="sendModernReaction('¡Iniciamos nueva ronda! 🔄')">¡Iniciamos nueva ronda! 🔄</button>
+                    <button type="button" onclick="sendModernReaction('Revisando cartón ganador... 🔍')">Revisando cartón ganador... 🔍</button>
+                </div>
+            </div>
+            <input type="text" id="modern-chat-input" placeholder="Mensaje de admin..." maxlength="120" autocomplete="off" onkeypress="if(event.key==='Enter') sendModernMessage()">
+            <button onclick="sendModernMessage()" class="btn-send-modern">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Gestión Económica Premium Overhaul (v16.1) -->
+    <div id="economy-modal" class="modal hidden">
+        <div class="modal-content modal-xl" style="padding: 0; overflow: hidden; border: none; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5);">
+            
+            <div class="modal-header" style="background: linear-gradient(90deg, var(--bg-dark), var(--bg-main)); border-bottom: 1px solid var(--glass-border); padding: 1.5rem 2rem;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 1.5rem; filter: drop-shadow(0 0 10px var(--primary-glow));">💎</span>
+                    <div style="display: flex; flex-direction: column;">
+                        <h3 style="margin: 0; font-weight: 800; letter-spacing: -0.5px;">Centro de Gestión Maestra</h3>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Configuración del ecosistema de créditos y sala</span>
+                    </div>
+                </div>
+                <button onclick="hideModal('economy-modal')" class="btn-close" style="background: rgba(255,255,255,0.05); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">✕</button>
+            </div>
+            
+            <div class="modal-tabs-layout">
+                <!-- Sidebar Lateral Elegante -->
+                <aside class="modal-sidebar">
+                    <button class="economy-tab-btn active" onclick="switchEconomyTab('eco-stats')">
+                        <span>📊</span> Actividad & Stats
+                    </button>
+                    <button class="economy-tab-btn" onclick="switchEconomyTab('eco-config')">
+                        <span>💰</span> Economía & Base
+                    </button>
+                    <button class="economy-tab-btn" onclick="switchEconomyTab('eco-promos')">
+                        <span>🎁</span> Promos & Premios
+                    </button>
+                    <button class="economy-tab-btn" onclick="switchEconomyTab('eco-payments')">
+                        <span>🏦</span> Pagos & Cuentas
+                    </button>
+                    
+                    <div style="margin-top: auto; padding: 1rem; background: rgba(139, 92, 246, 0.05); border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.1);">
+                        <div style="font-size: 0.65rem; color: var(--primary-light); font-weight: 800; text-transform: uppercase; margin-bottom: 4px;">Modo Actual</div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: white;" id="footer-mode-display">Producción Real</div>
+                    </div>
+                </aside>
+
+                <!-- Área de Contenido con Scroll Inteligente -->
+                <main class="modal-tabs-content" id="economy-tabs-container">
+                    
+                    <!-- 📊 TAB: Actividad & Stats -->
+                    <section id="eco-stats" class="tab-pane active">
+                        <div class="bento-grid">
+                            <div class="bento-item full-width">
+                                <div class="bento-header">
+                                    <h4>📈 Tendencia de Ventas</h4>
+                                    <p class="desc">Flujo de compra de créditos en las últimas 24 horas.</p>
+                                </div>
+                                <div class="stats-chart-placeholder" id="sales-sparkline">
+                                    <!-- Animado vía JS -->
+                                </div>
+                            </div>
+                            
+                            <div class="bento-item">
+                                <div class="bento-header">
+                                    <h4>👥 Jugadores</h4>
+                                    <p class="desc">Tráfico único activo hoy.</p>
+                                </div>
+                                <div class="stats-container">
+                                    <div class="stats-value">24</div>
+                                    <div class="stats-trend up">
+                                        <span>▲</span> 15%
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bento-item">
+                                <div class="bento-header">
+                                    <h4>💎 Circulación</h4>
+                                    <p class="desc">Volumen total de créditos en carteras.</p>
+                                </div>
+                                <div class="stats-container">
+                                    <div class="stats-value">1.8k</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">≈ $180.00 USD</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 💰 TAB: Economía & Base -->
+                    <section id="eco-config" class="tab-pane hidden">
+                        <div class="bento-grid">
+                            <div class="bento-item full-width">
+                                <div class="bento-header">
+                                    <h4>⚙️ Configuración Unificada</h4>
+                                    <p class="desc">Ajusta el valor de la moneda y las reglas de acceso a la sala.</p>
+                                </div>
+                                
+                                <div class="config-row">
+                                    <div class="config-item-label">
+                                        <span>Modo de Cobro</span>
+                                        <small>Define si se cobra por cartón individual o por entrada única a la ronda.</small>
+                                    </div>
+                                    <div class="config-control">
+                                        <div class="toggle-group" style="padding: 0; border: none;">
+                                            <button id="mode-per-card" onclick="setEconomyMode('per_card')" class="btn-toggle active" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 8px 0 0 8px;">Por Cartón</button>
+                                            <button id="mode-per-game" onclick="setEconomyMode('per_game')" class="btn-toggle" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 0 8px 8px 0;">Por Entrada</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="config-row">
+                                    <div class="config-item-label">
+                                        <span>Valor del Crédito ($)</span>
+                                        <small>Tasa de cambio base para recargas de usuarios.</small>
+                                    </div>
+                                    <div class="config-control">
+                                        <input type="number" id="eco-credit-val" step="0.1" placeholder="1.0">
+                                    </div>
+                                </div>
+
+                                <div class="config-row" id="row-unit-price">
+                                    <div class="config-item-label">
+                                        <span id="label-price-main">Precio Unitario (CL)</span>
+                                        <small>Costo en créditos según el modo de cobro seleccionado.</small>
+                                    </div>
+                                    <div class="config-control">
+                                        <input type="number" id="eco-price-unit" placeholder="1">
+                                    </div>
+                                </div>
+
+                                <div class="config-row">
+                                    <div class="config-item-label">
+                                        <span>🧪 Modo Informativo / Demo</span>
+                                        <small>Activa el modo de pruebas para omitir validaciones de pago reales.</small>
+                                    </div>
+                                    <div class="config-control">
+                                        <label class="switch">
+                                            <input type="checkbox" id="eco-demo-mode">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <button onclick="saveEconomyConfig()" class="btn-primary btn-full btn-glow" style="margin-top: 1rem; padding: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
+                                    🚀 Guardar Cambios Maestros
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 🎁 TAB: Promos & Premios -->
+                    <section id="eco-promos" class="tab-pane hidden">
+                        <div class="bento-grid">
+                            <div class="bento-item">
+                                <div class="bento-header">
+                                    <h4>🏆 Tabla de Premios</h4>
+                                    <p class="desc">Configura los montos en créditos para cada premio.</p>
+                                </div>
+                                <div class="config-row">
+                                    <div class="config-item-label"><span>Cartón Lleno</span></div>
+                                    <input type="number" id="prize-bingo" placeholder="0">
+                                </div>
+                                <div class="config-row">
+                                    <div class="config-item-label"><span>Línea</span></div>
+                                    <input type="number" id="prize-line" placeholder="0">
+                                </div>
+                                <div class="config-row">
+                                    <div class="config-item-label"><span>4 Esquinas</span></div>
+                                    <input type="number" id="prize-corners" placeholder="0">
+                                </div>
+                                <div class="config-row">
+                                    <div class="config-item-label"><span>Figura Especial</span></div>
+                                    <input type="number" id="prize-special" placeholder="0">
+                                </div>
+                                <button onclick="savePrizes()" class="btn-secondary btn-full" style="padding: 10px; margin-top: 10px; font-size: 0.8rem; font-weight: 700;">💾 Guardar Escala</button>
+                            </div>
+
+                            <div class="bento-item">
+                                <div class="bento-header">
+                                    <h4>🎁 Paquetes Descuento</h4>
+                                    <p class="desc">Ofertas automáticas para compras masivas.</p>
+                                </div>
+                                <div id="promotions-list" style="margin: 10px 0; min-height: 120px;">
+                                    <div class="empty-state-card">No hay promociones activas</div>
+                                </div>
+                                <button onclick="showAddPromoModal()" class="btn-secondary btn-full" style="padding: 10px; border: 1px dashed var(--primary); background: transparent; color: var(--primary-light);">➕ Nueva Promoción</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 🏦 TAB: Pagos & Cuentas -->
+                    <section id="eco-payments" class="tab-pane hidden">
+                        <div class="bento-grid">
+                            <div class="bento-item full-width">
+                                <div class="bento-header">
+                                    <h4>🏦 Canales de Recarga</h4>
+                                    <p class="desc">Cuentas bancarias que verán los jugadores al recargar.</p>
+                                </div>
+                                <div id="payment-methods-list" class="payment-methods-grid" style="margin-top: 1rem;">
+                                    <!-- Cargado dinámicamente -->
+                                </div>
+                                <div style="display: flex; gap: 15px; margin-top: 1.5rem;">
+                                    <button onclick="showAddPaymentMethodModal()" class="btn-primary" style="flex: 1; padding: 14px; font-weight: 700;">➕ Agregar Cuenta</button>
+                                    <button onclick="socket.emit('get_economy_data')" class="btn-secondary" style="padding: 14px;">🔄 Refrescar Listado</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </main>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
